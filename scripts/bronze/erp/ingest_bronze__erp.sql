@@ -1,3 +1,12 @@
+/*
+ ==============================================
+ Create View
+ ==============================================
+ Script Purposes:
+    This scripts create view for each table, and load from source
+    just copy 1:1 not include data warehouse timestamp.
+*/
+
 use DataWareHouse;
 go
 

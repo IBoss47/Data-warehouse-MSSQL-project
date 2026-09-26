@@ -1,3 +1,17 @@
+/*
+ ==============================================
+ Create load bronze procedure
+ ==============================================
+ Script purposes:
+    This scripts create procedure for load data into bronze layer.
+    and consider to create some logs for debug the process and show
+    durations time.
+
+ Warning:
+    In the future the path of dataset should be dynamic, now it fix
+    with local path.
+ */
+
 create or alter procedure bronze.load_bronze as
 declare @total_duration_start DATETIME, @total_duration_end DATETIME;
 begin

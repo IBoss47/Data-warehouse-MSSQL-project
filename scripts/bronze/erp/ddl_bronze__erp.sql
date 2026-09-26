@@ -4,7 +4,7 @@
  ==============================================
  Script Purposes:
     This scrips create table that store the data and create timestamp
-    for tracking newest data and choose them in intermediate layer
+    for tracking newest data and choose them in silver layer
 
     Timestamp (dwh_create_at, dwh_update_at) will be stamp when
     data load from view and it auto generate timestamp

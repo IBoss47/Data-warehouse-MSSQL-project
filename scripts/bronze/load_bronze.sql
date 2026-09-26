@@ -10,6 +10,9 @@
  Warning:
     In the future the path of dataset should be dynamic, now it fix
     with local path.
+
+ Usage Example:
+    EXEC DataWareHouse.bronze.load_bronze
  */
 
 create or alter procedure bronze.load_bronze as

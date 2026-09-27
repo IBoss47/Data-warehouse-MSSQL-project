@@ -29,7 +29,11 @@
  */
 
 create or alter procedure silver.t_prd_info as
+declare @start_time DATETIME, @end_time DATETIME;
 begin
+    set @start_time = GETDATE();
+    print('----------------------------------------------');
+    print('In process on table prd_info...');
     with transformations as (
         select
             prd_id as product_id,
@@ -74,4 +78,8 @@ begin
         dwh_update_at
     )
     select * from transformations;
+    set @end_time = GETDATE();
+    print('Successfully transformation on prd_info table.');
+    print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
+    print('----------------------------------------------');
 end;

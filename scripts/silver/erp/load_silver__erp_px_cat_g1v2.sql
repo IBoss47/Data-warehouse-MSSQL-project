@@ -23,7 +23,11 @@
  */
 
 create or alter procedure silver.t_px_cat_g1v2 as
+declare @start_time DATETIME, @end_time DATETIME;
 begin
+    set @start_time = GETDATE();
+    print('----------------------------------------------');
+    print('In process on table px_cat_g1v2...');
     insert into silver.erp_px_cat_g1v2(
         category_id,
         category,
@@ -33,4 +37,9 @@ begin
         dwh_update_at
     )
     select * from bronze.erp_px_cat_g1v2;
+    set @end_time = GETDATE();
+
+    print('Successfully transformation on px_cat_g1v2 table.');
+    print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
+    print('----------------------------------------------');
 end;

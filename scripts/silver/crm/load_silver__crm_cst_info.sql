@@ -26,7 +26,11 @@
  */
 
 create or alter procedure silver.t_cst_info as
+declare @start_time DATETIME, @end_time DATETIME;
 begin
+    set @start_time = GETDATE();
+    print('----------------------------------------------');
+    print('In process on table cst_info...');
     with latest_data as (
         select
             *,
@@ -80,4 +84,8 @@ begin
         dwh_update_at
     )
     select * from transformation;
+    set @end_time = GETDATE();
+    print('Successfully transformation on cst_info table.');
+    print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
+    print('----------------------------------------------');
 end;

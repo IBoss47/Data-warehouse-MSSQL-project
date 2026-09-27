@@ -26,7 +26,11 @@
  */
 
 create or alter procedure silver.t_loc_a101 as
+declare @start_time DATETIME, @end_time DATETIME;
 begin
+    set @start_time = GETDATE();
+    print('----------------------------------------------');
+    print('In process on table loc_a101...');
     with transformations as (
         select
             replace(cid, '-', '') as customer_key,
@@ -54,4 +58,9 @@ begin
         dwh_update_at
     )
     select * from transformations;
+    set @end_time = GETDATE();
+
+    print('Successfully transformation on loc_a101 table.');
+    print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
+    print('----------------------------------------------');
 end;

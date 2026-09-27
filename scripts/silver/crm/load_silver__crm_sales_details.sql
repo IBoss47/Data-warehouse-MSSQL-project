@@ -26,7 +26,11 @@
  */
 
 create or alter procedure silver.t_sales_details as
+declare @start_time DATETIME, @end_time DATETIME;
 begin
+    set @start_time = GETDATE();
+    print('----------------------------------------------');
+    print('In process on table sales_details...');
     with base_clean as (
         select
             sls_ord_num as order_number,
@@ -99,4 +103,9 @@ begin
         dwh_update_at
     )
     select * from transformations;
+    set @end_time = GETDATE();
+    print('Successfully transformation on sales_details table.');
+    print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
+    print('----------------------------------------------');
+
 end;

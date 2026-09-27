@@ -16,8 +16,8 @@
 if OBJECT_ID('silver.erp_loc_a101', 'U') is null
 begin
     create table silver.erp_loc_a101(
-        cid NVARCHAR(50),
-        cntry NVARCHAR(50),
+        customer_key NVARCHAR(50),
+        country NVARCHAR(50),
 
         dwh_create_at datetime,
         dwh_update_at datetime 
@@ -28,9 +28,9 @@ go
 if OBJECT_ID('silver.erp_cust_az12', 'U') is null
 begin
     CREATE TABLE silver.erp_cust_az12 (
-        cid    NVARCHAR(50),
-        bdate  NVARCHAR(50),
-        gen    NVARCHAR(50),
+        customer_key    NVARCHAR(50),
+        birth_day  NVARCHAR(50),
+        gender    NVARCHAR(50),
 
         dwh_create_at datetime,
         dwh_update_at datetime 
@@ -41,10 +41,10 @@ go
 if OBJECT_ID('silver.erp_px_cat_g1v2', 'U') is null
 begin
     CREATE TABLE silver.erp_px_cat_g1v2 (
-        id           NVARCHAR(50),
-        cat          NVARCHAR(50),
-        subcat       NVARCHAR(50),
-        maintenance  NVARCHAR(50),
+        category_id        NVARCHAR(50),
+        category           NVARCHAR(50),
+        sub_category       NVARCHAR(50),
+        maintenance        NVARCHAR(50),
 
         dwh_create_at datetime,
         dwh_update_at datetime 

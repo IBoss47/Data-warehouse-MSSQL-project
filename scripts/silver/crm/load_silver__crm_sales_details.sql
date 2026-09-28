@@ -7,6 +7,8 @@
     and consider to create some logs for debug the process and show
     durations time.
 
+    Principles of load process : Incremental load, using watermark
+
  Problems:
     - Invalid date formats (e.g., negative values or incorrect length)
     - Missing or invalid unit prices and total sales

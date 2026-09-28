@@ -7,6 +7,8 @@
     and consider to create some logs for debug the process and show
     durations time.
 
+    Principles of load process : Incremental load, using watermark
+
  Problems:
     - In column cntry (country) have difference abbreviation
     - cid (customer_key) have symbol so that it show difference key to related customer table (cust_info)

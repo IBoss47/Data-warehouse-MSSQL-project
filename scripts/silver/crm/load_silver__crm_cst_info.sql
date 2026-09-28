@@ -7,6 +7,8 @@
     and consider to create some logs for debug the process and show
     durations time.
 
+    Principles of load process : Incremental load, using watermark
+
  Problems:
     - Duplicated cst_id and cst_key
     - Unstandardized marital_status and gender values

@@ -7,6 +7,8 @@
     and consider to create some logs for debug the process and show
     durations time.
 
+    Principles of load process : Incremental load, using watermark
+
  Problems:
     - cid have useless prefix like 'NAS'
     - bdate have outliner or trash data like birth day in the future

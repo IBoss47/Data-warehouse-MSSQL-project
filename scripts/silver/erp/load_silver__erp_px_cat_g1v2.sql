@@ -8,6 +8,8 @@
     This scripts will be load data 1:1 from bronze layer to silver layer
     on px_cat_g1v2 table.
 
+    Principles of load process : Incremental load, using watermark
+
  Problems:
     - None
 

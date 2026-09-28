@@ -36,6 +36,7 @@ begin
     if OBJECT_ID('silver.crm_sales_details', 'U') is null
     begin
         create table silver.crm_sales_details (
+            sale_id NVARCHAR(64) NOT NULL PRIMARY KEY,
             order_number  NVARCHAR(50),
             product_key   NVARCHAR(50),
             customer_id   INT,

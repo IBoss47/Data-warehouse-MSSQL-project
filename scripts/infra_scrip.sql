@@ -39,4 +39,33 @@ go
 create schema gold;
 go
 
+if OBJECT_ID('silver.system_watermark', 'U') is null
+begin
+    create table silver.system_watermark(
+        state_name NVARCHAR(100) primary key,
+        last_processed_timestamp DATETIME2,
+        update_at DATETIME2
+    );
+
+    insert into silver.system_watermark(state_name, last_processed_timestamp, update_at)
+    select src.state_name, src.last_processed_timestamp, src.update_at
+    from (
+        values
+            ('bronze_to_silver_cst_info',       CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME()),
+            ('bronze_to_silver_prd_info',       CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME()),
+            ('bronze_to_silver_sales_details',  CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME()),
+            ('bronze_to_silver_cust_az12',      CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME()),
+            ('bronze_to_silver_loc_a101',       CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME()),
+            ('bronze_to_silver_px_cat_g1v2',    CAST('1900-01-01 00:00:00' AS DATETIME2), SYSDATETIME())
+    ) as src(state_name, last_processed_timestamp, update_at)
+    where not exists (
+        select 1 from silver.system_watermark target where target.state_name = src.state_name
+    );
+end;
+go
+
+
+
+
+
 

@@ -26,12 +26,41 @@
  */
 
 create or alter procedure silver.t_loc_a101 as
-declare @start_time DATETIME, @end_time DATETIME;
 begin
-    set @start_time = GETDATE();
+    declare @start_time DATETIME, @end_time DATETIME;
+    declare @new_watermark DATETIME2, @last_watermark DATETIME2;
+    declare @state_name NVARCHAR(100) = 'bronze_to_silver_loc_a101';
+
     print('----------------------------------------------');
+    print('Starting Incremental Process on table cst_info...');
+    select
+        @last_watermark = last_processed_timestamp
+    from silver.system_watermark
+    where state_name = @state_name;
+
+    select
+        @new_watermark = max(dwh_update_at)
+    from bronze.erp_loc_a101
+
+    print('>> Last watermark : ' + cast(@last_watermark as NVARCHAR(30)));
+    print('>> Current watermark : ' + cast(@new_watermark as NVARCHAR(30)));
+
+    if @new_watermark <= @last_watermark
+    begin
+        print('>> No incremental data found...')
+        print('----------------------------------------------')
+        return;
+    end
+
+    set @start_time = GETDATE();
     print('In process on table loc_a101...');
-    with transformations as (
+    with incremental as (
+        select
+            *
+        from bronze.erp_loc_a101
+        where dwh_update_at > @last_watermark
+    ),
+    transformations as (
         select
             replace(cid, '-', '') as customer_key,
 
@@ -48,19 +77,41 @@ begin
             dwh_create_at,
             dwh_update_at
 
-        from bronze.erp_loc_a101
+        from incremental
     )
 
-    insert into silver.erp_loc_a101(
-        customer_key,
-        country,
-        dwh_create_at,
-        dwh_update_at
-    )
-    select * from transformations;
+    merge into silver.erp_loc_a101 as target
+    using transformations as source
+    on target.customer_key = source.customer_key
+    when matched then
+        update set
+            target.customer_key = source.customer_key,
+            target.country = source.country,
+            target.dwh_create_at = source.dwh_create_at,
+            target.dwh_update_at = source.dwh_update_at
+    when not matched then
+        insert (
+            customer_key,
+            country,
+            dwh_create_at,
+            dwh_update_at
+        )
+        values (
+            source.customer_key,
+            source.country,
+            source.dwh_create_at,
+            source.dwh_update_at
+        );
+    declare @total_rows INT = @@ROWCOUNT;
+
+    update silver.system_watermark
+    set last_processed_timestamp = @new_watermark, update_at = SYSDATETIME()
+    where state_name = @state_name;
+
     set @end_time = GETDATE();
 
     print('Successfully transformation on loc_a101 table.');
+    print('Total rows : ' + cast(@total_rows as NVARCHAR))
     print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
     print('----------------------------------------------');
 end;

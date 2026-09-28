@@ -29,12 +29,41 @@
 
 
 create or alter procedure silver.t_cust_az12 as
-declare @start_time DATETIME, @end_time DATETIME;
 begin
-    set @start_time = GETDATE();
+    declare @start_time DATETIME, @end_time DATETIME;
+    declare @new_watermark DATETIME2, @last_watermark DATETIME2;
+    declare @state_name NVARCHAR(100) = 'bronze_to_silver_cust_az12';
+
     print('----------------------------------------------');
+    print('Starting Incremental Process on table cst_info...');
+    select
+        @last_watermark = last_processed_timestamp
+    from silver.system_watermark
+    where state_name = @state_name;
+
+    select
+        @new_watermark = max(dwh_update_at)
+    from bronze.erp_cust_az12
+
+    print('>> Last watermark : ' + cast(@last_watermark as NVARCHAR(30)));
+    print('>> Current watermark : ' + cast(@new_watermark as NVARCHAR(30)));
+
+    if @new_watermark <= @last_watermark
+    begin
+        print('>> No incremental data found...')
+        print('----------------------------------------------')
+        return;
+    end
+
+    set @start_time = GETDATE();
     print('In process on table cust_az12...');
-    with transformations as (
+    with incremental as (
+        select
+            *
+        from bronze.erp_cust_az12
+        where dwh_update_at > @last_watermark
+    ),
+    transformations as (
         select
             case
                 when len(cid) != 10 then substring(cid, 4, len(cid))
@@ -55,20 +84,44 @@ begin
             dwh_create_at,
             dwh_update_at
 
-        from bronze.erp_cust_az12
+        from incremental
     )
+    merge into silver.erp_cust_az12 as target
+    using transformations as source
+    on target.customer_key = source.customer_key
+    when matched then
+        update set
+            target.customer_key = source.customer_key,
+            target.birth_day = source.birth_day,
+            target.gender = source.gender,
+            target.dwh_create_at = source.dwh_create_at,
+            target.dwh_update_at = source.dwh_update_at
+    when not matched then
 
-    insert into silver.erp_cust_az12(
-        customer_key,
-        birth_day,
-        gender,
-        dwh_create_at,
-        dwh_update_at
-    )
-    select * from transformations;
+        insert (
+            customer_key,
+            birth_day,
+            gender,
+            dwh_create_at,
+            dwh_update_at
+        )
+        values (
+            source.customer_key,
+            source.birth_day,
+            source.gender,
+            source.dwh_create_at,
+            source.dwh_update_at
+        );
+    declare @total_rows INT = @@ROWCOUNT;
+
+    update silver.system_watermark
+    set last_processed_timestamp = @new_watermark, update_at = SYSDATETIME()
+    where state_name = @state_name;
+
     set @end_time = GETDATE();
 
     print('Successfully transformation on cust_az12 table.');
+    print('Total rows : ' + cast(@total_rows as NVARCHAR))
     print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
     print('----------------------------------------------');
 end;

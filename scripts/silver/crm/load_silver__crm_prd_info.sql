@@ -29,12 +29,40 @@
  */
 
 create or alter procedure silver.t_prd_info as
-declare @start_time DATETIME, @end_time DATETIME;
 begin
-    set @start_time = GETDATE();
+    declare @start_time DATETIME, @end_time DATETIME;
+    declare @last_watermark DATETIME2, @new_watermark DATETIME2
+    declare @state_name NVARCHAR(100) = 'bronze_to_silver_prd_info'
+
     print('----------------------------------------------');
+    print('Starting Incremental Process on table cst_info...');
+    select
+        @last_watermark = last_processed_timestamp
+    from silver.system_watermark
+    where state_name = @state_name
+
+    select
+        @new_watermark = max(dwh_update_at)
+    from bronze.crm_prd_info
+    print('>> Last watermark : ' + cast(@last_watermark as NVARCHAR(30)));
+    print('>> Current watermark : ' + cast(@new_watermark as NVARCHAR(30)));
+
+    if @new_watermark <= @last_watermark
+    begin
+        print('>> No incremental data found...')
+        print('----------------------------------------------')
+        return;
+    end
+
+    set @start_time = GETDATE();
     print('In process on table prd_info...');
-    with transformations as (
+    ;with incremental as (
+        select
+            *
+        from bronze.crm_prd_info
+        where dwh_update_at > @last_watermark
+    ),
+    transformations as (
         select
             prd_id as product_id,
             prd_key as product_category_key,
@@ -61,25 +89,60 @@ begin
             ) as product_end_date,
             dwh_create_at,
             dwh_update_at
-        from bronze.crm_prd_info
+        from incremental
     )
+    merge into silver.crm_prd_info as target
+    using transformations as source
+    on target.product_id = source.product_id
+    when matched then
+        update set
+            target.product_id = source.product_id,
+            target.product_category_key = source.product_category_key,
+            target.category_key = source.category_key,
+            target.product_key = source.product_key,
+            target.product_name = source.product_name,
+            target.product_price = source.product_price,
+            target.product_line = source.product_line,
+            target.product_start_time = source.product_start_date,
+            target.product_end_time = source.product_end_date,
+            target.dwh_create_at = source.dwh_create_at,
+            target.dwh_update_at = source.dwh_update_at
+    when not matched then
+        insert (
+            product_id,
+            product_category_key,
+            category_key,
+            product_key,
+            product_name,
+            product_price,
+            product_line,
+            product_start_time,
+            product_end_time,
+            dwh_create_at,
+            dwh_update_at
+        )
+        values (
+            source.product_id,
+            source.product_category_key,
+            source.category_key,
+            source.product_key,
+            source.product_name,
+            source.product_price,
+            source.product_line,
+            source.product_start_date,
+            source.product_end_date,
+            source.dwh_create_at,
+            source.dwh_update_at
+        );
+    declare @total_rows INT = @@ROWCOUNT;
 
-    insert into silver.crm_prd_info(
-        product_id,
-        product_category_key,
-        category_key,
-        product_key,
-        product_name,
-        product_price,
-        product_line,
-        product_start_time,
-        product_end_time,
-        dwh_create_at,
-        dwh_update_at
-    )
-    select * from transformations;
+    update silver.system_watermark
+    set last_processed_timestamp = @new_watermark, update_at = SYSDATETIME()
+    where state_name = @state_name;
+
     set @end_time = GETDATE();
     print('Successfully transformation on prd_info table.');
+    print('Total rows : ' + cast(@total_rows as NVARCHAR))
     print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
     print('----------------------------------------------');
 end;

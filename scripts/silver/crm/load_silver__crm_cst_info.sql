@@ -26,19 +26,48 @@
  */
 
 create or alter procedure silver.t_cst_info as
-declare @start_time DATETIME, @end_time DATETIME;
 begin
-    set @start_time = GETDATE();
+    declare @start_time DATETIME, @end_time DATETIME;
+    declare @new_watermark DATETIME2, @last_watermark DATETIME2;
+    declare @state_name NVARCHAR(100) = 'bronze_to_silver_cst_info';
+
     print('----------------------------------------------');
+    print('Starting Incremental Process on table cst_info...');
+    select
+        @last_watermark = last_processed_timestamp
+    from silver.system_watermark
+    where state_name = @state_name;
+
+    select
+        @new_watermark = max(dwh_update_at)
+    from bronze.crm_cust_info
+
+    print('>> Last watermark : ' + cast(@last_watermark as NVARCHAR(30)));
+    print('>> Current watermark : ' + cast(@new_watermark as NVARCHAR(30)));
+
+    if @new_watermark <= @last_watermark
+    begin
+        print('>> No incremental data found...')
+        print('----------------------------------------------')
+        return;
+    end
+
+    set @start_time = GETDATE();
     print('In process on table cst_info...');
-    with latest_data as (
+    ;with incremental as (
+        select
+            *
+        from bronze.crm_cust_info
+        where dwh_update_at > @last_watermark
+    ),
+    latest_data as (
         select
             *,
             row_number() over(
                 partition by cst_id
-                order by dwh_create_at desc, cst_create_date desc
+                order by dwh_update_at desc, dwh_create_at desc, cst_create_date desc
             ) as rn
-        from bronze.crm_cust_info
+        from incremental
     ),
     filter_data as (
         select
@@ -72,20 +101,51 @@ begin
         from filter_data
     )
 
-    insert into silver.crm_cust_info(
-        customer_id,
-        customer_key,
-        first_name,
-        last_name,
-        marital_status,
-        gender,
-        source_create_date,
-        dwh_create_at,
-        dwh_update_at
-    )
-    select * from transformation;
+    merge into silver.crm_cust_info as target
+    using transformation as source
+    on target.customer_id = source.customer_id
+    when matched then
+        update set
+            target.customer_key       = source.customer_key,
+            target.first_name         = source.first_name,
+            target.last_name          = source.last_name,
+            target.marital_status     = source.marital_status,
+            target.gender             = source.gender,
+            target.source_create_date = source.source_create_date,
+            target.dwh_create_at      = source.dwh_create_at,
+            target.dwh_update_at      = source.dwh_update_at
+    when not matched then
+        insert (
+            customer_id,
+            customer_key,
+            first_name,
+            last_name,
+            marital_status,
+            gender,
+            source_create_date,
+            dwh_create_at,
+            dwh_update_at
+        )
+        values (
+            source.customer_id,
+            source.customer_key,
+            source.first_name,
+            source.last_name,
+            source.marital_status,
+            source.gender,
+            source.source_create_date,
+            source.dwh_create_at,
+            source.dwh_update_at
+        );
+    declare @total_rows INT = @@ROWCOUNT;
+
+    update silver.system_watermark
+    set last_processed_timestamp = @new_watermark, update_at = SYSDATETIME()
+    where state_name = @state_name;
+
     set @end_time = GETDATE();
     print('Successfully transformation on cst_info table.');
+    print('Total rows : ' + cast(@total_rows as NVARCHAR))
     print('>> Time Durations: ' + CAST(datediff(second, @start_time, @end_time) AS VARCHAR) + ' seconds');
     print('----------------------------------------------');
 end;

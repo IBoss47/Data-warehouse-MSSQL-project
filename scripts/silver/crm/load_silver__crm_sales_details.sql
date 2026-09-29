@@ -55,11 +55,26 @@ begin
     end
 
     print('In process on table sales_details...');
-    with incremental as (
+    ;with incremental as (
         select
             *
         from bronze.crm_sales_details
         where dwh_update_at > @last_watermark
+    ),
+    latest_data as (
+        select
+            *,
+            row_number() over(
+                partition by sls_ord_num, sls_prd_key
+                order by dwh_update_at desc, dwh_create_at desc
+            ) as rn
+        from incremental
+    ),
+    filter_data as (
+        select
+            *
+        from latest_data
+        where rn = 1 and sls_ord_num is not null
     ),
     base_clean as (
         select
@@ -93,7 +108,7 @@ begin
 
             dwh_create_at,
             dwh_update_at
-        from incremental
+        from filter_data
     ),
     transformations as (
         select

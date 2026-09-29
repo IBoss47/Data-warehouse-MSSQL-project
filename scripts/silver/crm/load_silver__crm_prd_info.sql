@@ -64,6 +64,21 @@ begin
         from bronze.crm_prd_info
         where dwh_update_at > @last_watermark
     ),
+    latest_data as (
+        select
+            *,
+            row_number() over(
+                partition by prd_id
+                order by dwh_update_at desc, dwh_create_at desc, prd_start_dt desc
+            ) as rn
+        from incremental
+    ),
+    filter_data as (
+        select
+            *
+        from latest_data
+        where rn = 1 and prd_id is not null
+    ),
     transformations as (
         select
             prd_id as product_id,
@@ -91,7 +106,7 @@ begin
             ) as product_end_date,
             dwh_create_at,
             dwh_update_at
-        from incremental
+        from filter_data
     )
     merge into silver.crm_prd_info as target
     using transformations as source

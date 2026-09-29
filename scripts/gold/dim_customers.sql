@@ -1,3 +1,14 @@
+/*
+ ==============================================
+ View: gold.dim_customers
+ ==============================================
+ Description:
+ - Creates a dimension view for customers in the gold layer.
+ - Integrates data from CRM (customer info) and ERP (demographics, location) systems.
+ - Resolves conflicts (e.g., prioritizing CRM gender data).
+ - Generates a sequential surrogate key (customer_number).
+*/
+
 create view gold.dim_customers as
 select
     row_number() over(order by customer_id) as customer_number,

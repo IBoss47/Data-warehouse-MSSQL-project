@@ -1,3 +1,12 @@
+/*
+ ==============================================
+ View: gold.fact_sales
+ ==============================================
+ Description:
+ - Creates a fact view for sales transactions in the gold layer.
+ - Pulls core transactional data and metrics (sales, quantity, price) from CRM.
+ - Joins with gold dimension views (dim_products, dim_customers) to resolve keys.
+*/
 create view gold.fact_sales as
 select
     sd.sale_id,

@@ -94,7 +94,6 @@ begin
     set last_processed_timestamp = @new_watermark, update_at = SYSDATETIME()
     where state_name = @state_name;
 
-    select * from bronze.erp_px_cat_g1v2;
     set @end_time = GETDATE();
 
     print('Successfully transformation on px_cat_g1v2 table.');

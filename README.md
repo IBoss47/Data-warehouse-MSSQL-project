@@ -59,14 +59,21 @@ Make sure you have the following installed on your machine:
 
 This project includes a `Makefile` to automate the setup and execution of the data pipeline.
 
-1. **Start the Database Environment**
+1. **Configure Credentials**
+   First, you need to set up your environment variables. Run the following command:
+   ```bash
+   make setup
+   ```
+   *This command creates a `.env` file from the `.env.example` template. You **must** open the newly created `.env` file and set all of your actual credentials (like `DB_PASSWORD`) before moving on to the next step.*
+
+2. **Start the Database Environment**
    Spin up the SQL Server instance by running:
    ```bash
    make up
    ```
    *This command starts the container in the background and waits for SQL Server to be ready. The database will be accessible at `localhost:1433`.*
 
-2. **Initialize the Infrastructure**
+3. **Initialize the Infrastructure**
    Run the infrastructure setup script to create the `DataWareHouse` database, schemas, and necessary configuration tables (like watermarks):
    ```bash
    make init

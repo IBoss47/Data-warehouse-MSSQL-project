@@ -1,13 +1,16 @@
+-include .env
+
 # Variables
 CONTAINER_NAME=sql_server_container
-DB_USER=sa
-DB_PASS='MyPass1234!'
+DB_USER?=sa
+DB_PASS='$(DB_PASSWORD)'
 SQLCMD=docker exec -i $(CONTAINER_NAME) /opt/mssql-tools18/bin/sqlcmd -S localhost -U $(DB_USER) -P $(DB_PASS) -C
 
-.PHONY: help up down init bronze silver gold run-all
+.PHONY: help setup up down init bronze silver gold run-all
 
 help:
 	@echo "Available commands:"
+	@echo "  make setup       - Create .env file from .env.example"
 	@echo "  make up          - Start the SQL Server container"
 	@echo "  make down        - Stop and remove the SQL Server container"
 	@echo "  make init        - Run infrastructure setup (creates database and schemas)"
@@ -15,6 +18,9 @@ help:
 	@echo "  make silver      - Transform and load data into the Silver layer"
 	@echo "  make gold        - Create Dimension and Fact views in the Gold layer"
 	@echo "  make run-all     - Run everything from start to finish (init -> bronze -> silver -> gold)"
+
+setup:
+	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env from .env.example"; else echo ".env already exists"; fi
 
 up:
 	docker-compose up -d
